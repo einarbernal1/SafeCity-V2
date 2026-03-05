@@ -686,59 +686,42 @@ app.put('/denuncia/:idDenuncia', async (req, res) => {
   const { idDenuncia } = req.params;
   const { descripcion, modulo_epi, hora, fecha, tipo, calle_avenida, evidencia } = req.body;
 
-  // Validaciones básicas
   if (!descripcion || !modulo_epi || !hora || !fecha || !tipo || !calle_avenida) {
-    return res.status(400).json({ 
-      success: false,
-      message: 'Todos los campos obligatorios son requeridos' 
-    });
+    return res.status(400).json({ success: false, message: 'Faltan campos obligatorios' });
   }
 
   try {
-    // Primero verificar si la denuncia existe y obtener su información actual
-    const [denunciaActual] = await pool.query(
-      'SELECT fue_modificada, fecha, hora, estado FROM denuncia WHERE id_denuncia = ?',
+    const [rows] = await pool.query(
+      'SELECT fecha, hora, estado FROM denuncia WHERE id_denuncia = ?',
       [idDenuncia]
     );
 
-    if (denunciaActual.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'Denuncia no encontrada'
-      });
+    if (rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Denuncia no encontrada' });
     }
 
-    const denuncia = denunciaActual[0];
+    const denuncia = rows[0];
 
-    // Verificar si ya fue modificada
-    if (denuncia.fue_modificada === 1) {
-      return res.status(400).json({
-        success: false,
-        message: 'Esta denuncia ya fue modificada anteriormente'
-      });
-    }
-
-    // Verificar si aún está en estado pendiente
-    if (denuncia.estado !== 'PENDIENTE') {
-      return res.status(400).json({
-        success: false,
-        message: 'Solo se pueden modificar denuncias pendientes'
-      });
-    }
-
-    // Verificar si aún está dentro del tiempo límite (10 minutos)
-    const fechaRegistro = new Date(`${denuncia.fecha}T${denuncia.hora}`);
+    // --- MANEJO SEGURO DE FECHA ---
+    const d = new Date(denuncia.fecha);
+    const anio = d.getFullYear();
+    const mes = String(d.getMonth() + 1).padStart(2, '0');
+    const dia = String(d.getDate()).padStart(2, '0');
+    const fechaDbLocal = `${anio}-${mes}-${dia}`;
+    
+    // Creamos el objeto de fecha de registro combinando fecha y hora
+    const fechaRegistro = new Date(`${fechaDbLocal}T${denuncia.hora}`);
     const now = new Date();
     const diffMinutes = (now.getTime() - fechaRegistro.getTime()) / (1000 * 60);
 
     if (diffMinutes > 10) {
       return res.status(400).json({
         success: false,
-        message: 'El tiempo para modificar esta denuncia ha expirado'
+        message: 'El tiempo para modificar esta denuncia (10 min) ha expirado'
       });
     }
 
-    // Actualizar la denuncia y marcar como modificada
+    // Actualizar denuncia
     await pool.query(
       `UPDATE denuncia 
        SET descripcion = ?, modulo_epi = ?, hora = ?, fecha = ?, 
@@ -747,15 +730,14 @@ app.put('/denuncia/:idDenuncia', async (req, res) => {
       [descripcion, modulo_epi, hora, fecha, tipo, calle_avenida, evidencia || null, idDenuncia]
     );
 
-    res.json({
-      success: true,
-      message: 'Denuncia actualizada exitosamente'
-    });
+    res.json({ success: true, message: 'Denuncia actualizada correctamente' });
+
   } catch (error) {
-    console.error('Error al actualizar denuncia:', error);
+    // ESTO ES VITAL: Ahora verás el error real en los logs de Render
+    console.error('ERROR DETALLADO AL ACTUALIZAR:', error);
     res.status(500).json({
       success: false,
-      message: 'Error en el servidor al actualizar la denuncia'
+      message: 'Error interno del servidor al procesar la actualización'
     });
   }
 });
