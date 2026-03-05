@@ -686,42 +686,59 @@ app.put('/denuncia/:idDenuncia', async (req, res) => {
   const { idDenuncia } = req.params;
   const { descripcion, modulo_epi, hora, fecha, tipo, calle_avenida, evidencia } = req.body;
 
+  // Validaciones básicas
   if (!descripcion || !modulo_epi || !hora || !fecha || !tipo || !calle_avenida) {
-    return res.status(400).json({ success: false, message: 'Faltan campos obligatorios' });
+    return res.status(400).json({ 
+      success: false,
+      message: 'Todos los campos obligatorios son requeridos' 
+    });
   }
 
   try {
-    const [rows] = await pool.query(
-      'SELECT fecha, hora, estado FROM denuncia WHERE id_denuncia = ?',
+    // Primero verificar si la denuncia existe y obtener su información actual
+    const [denunciaActual] = await pool.query(
+      'SELECT fue_modificada, fecha, hora, estado FROM denuncia WHERE id_denuncia = ?',
       [idDenuncia]
     );
 
-    if (rows.length === 0) {
-      return res.status(404).json({ success: false, message: 'Denuncia no encontrada' });
+    if (denunciaActual.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Denuncia no encontrada'
+      });
     }
 
-    const denuncia = rows[0];
+    const denuncia = denunciaActual[0];
 
-    // --- MANEJO SEGURO DE FECHA ---
-    const d = new Date(denuncia.fecha);
-    const anio = d.getFullYear();
-    const mes = String(d.getMonth() + 1).padStart(2, '0');
-    const dia = String(d.getDate()).padStart(2, '0');
-    const fechaDbLocal = `${anio}-${mes}-${dia}`;
-    
-    // Creamos el objeto de fecha de registro combinando fecha y hora
-    const fechaRegistro = new Date(`${fechaDbLocal}T${denuncia.hora}`);
+    // Verificar si ya fue modificada
+    if (denuncia.fue_modificada === 1) {
+      return res.status(400).json({
+        success: false,
+        message: 'Esta denuncia ya fue modificada anteriormente'
+      });
+    }
+
+    // Verificar si aún está en estado pendiente
+    if (denuncia.estado !== 'PENDIENTE') {
+      return res.status(400).json({
+        success: false,
+        message: 'Solo se pueden modificar denuncias pendientes'
+      });
+    }
+
+    // Verificar si aún está dentro del tiempo límite (10 minutos)
+    const fechaRegistro = new Date(`${denuncia.fecha}T${denuncia.hora}`);
     const now = new Date();
     const diffMinutes = (now.getTime() - fechaRegistro.getTime()) / (1000 * 60);
 
     if (diffMinutes > 10) {
       return res.status(400).json({
         success: false,
-        message: 'El tiempo para modificar esta denuncia (10 min) ha expirado'
+        message: 'El tiempo para modificar esta denuncia ha expirado'
       });
     }
 
-    // Actualizar denuncia
+    // Actualizar la denuncia y marcar como modificada
     await pool.query(
       `UPDATE denuncia 
        SET descripcion = ?, modulo_epi = ?, hora = ?, fecha = ?, 
@@ -730,14 +747,15 @@ app.put('/denuncia/:idDenuncia', async (req, res) => {
       [descripcion, modulo_epi, hora, fecha, tipo, calle_avenida, evidencia || null, idDenuncia]
     );
 
-    res.json({ success: true, message: 'Denuncia actualizada correctamente' });
-
+    res.json({
+      success: true,
+      message: 'Denuncia actualizada exitosamente'
+    });
   } catch (error) {
-    // ESTO ES VITAL: Ahora verás el error real en los logs de Render
-    console.error('ERROR DETALLADO AL ACTUALIZAR:', error);
+    console.error('Error al actualizar denuncia:', error);
     res.status(500).json({
       success: false,
-      message: 'Error interno del servidor al procesar la actualización'
+      message: 'Error en el servidor al actualizar la denuncia'
     });
   }
 });
@@ -1053,57 +1071,8 @@ app.put('/policia/:id', async (req, res) => {
   }
 });
 
-// CHATBOT SIMPLE DE AYUDA
-app.post("/chatbot", (req, res) => {
-  const { message } = req.body;
-
-  if (!message) {
-    return res.status(400).json({ reply: "Mensaje vacío." });
-  }
-
-  const msg = message.toLowerCase();
-
-  let reply = "";
-
-  if (msg.includes("descripcion")) {
-    reply =
-      "En la descripción debes detallar claramente lo ocurrido: qué pasó, cuándo ocurrió y si hubo personas involucradas.";
-  } 
-  else if (msg.includes("modulo") || msg.includes("epi")) {
-    reply =
-      "Selecciona el módulo policial (EPI) más cercano al lugar del incidente para que puedan atender tu denuncia.";
-  } 
-  else if (msg.includes("hora")) {
-    reply =
-      "Indica la hora aproximada en la que ocurrió el incidente.";
-  } 
-  else if (msg.includes("tipo")) {
-    reply =
-      "Selecciona el tipo de incidente que mejor describa lo sucedido (robo, accidente, violencia, etc.).";
-  } 
-  else if (msg.includes("imagen") || msg.includes("foto")) {
-    reply =
-      "Puedes adjuntar una imagen como evidencia. Esto ayuda a respaldar tu denuncia.";
-  } 
-  else if (msg.includes("direccion") || msg.includes("calle")) {
-    reply =
-      "Indica la calle o avenida donde ocurrió el incidente con la mayor precisión posible.";
-  } 
-  else if (msg.includes("terminar") || msg.includes("finalizar")) {
-    reply =
-      "Una vez completes todos los campos correctamente y presiones 'Enviar Denuncia', aparecerá un modal de confirmación y podrás dirigirte al historial para ver el estado de tu denuncia.";
-  } 
-  else {
-    reply =
-      "Puedo ayudarte a llenar tu denuncia. Pregúntame sobre: descripción, módulo policial, hora, tipo de incidente, dirección o imagen.";
-  }
-
-  res.json({ reply });
-});
-
-
-
 // Iniciar servidor
 app.listen(PORT, () => {
     console.log(`Servidor backend corriendo en http://localhost:${PORT}`);
   });
+
