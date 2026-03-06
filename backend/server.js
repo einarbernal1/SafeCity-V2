@@ -684,7 +684,10 @@ app.get('/denuncia/:idDenuncia', async (req, res) => {
 // Ruta para actualizar una denuncia existente
 app.put('/denuncia/:idDenuncia', async (req, res) => {
   const { idDenuncia } = req.params;
-  const { descripcion, modulo_epi, hora, fecha, tipo, calle_avenida, evidencia } = req.body;
+  let { descripcion, modulo_epi, hora, fecha, tipo, calle_avenida, evidencia } = req.body;
+
+    // ✅ AGREGA ESTA LÍNEA - limpia la fecha sin importar cómo llegue
+    fecha = String(fecha).split('T')[0];
 
   // Validaciones básicas
   if (!descripcion || !modulo_epi || !hora || !fecha || !tipo || !calle_avenida) {
