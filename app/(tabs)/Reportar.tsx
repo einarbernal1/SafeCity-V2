@@ -180,10 +180,12 @@ const API_URL = `${HEROKU_BASE_URL}/denuncias`;
   
     setLoading(true);
   
-    const year = horaIncidente.getFullYear();
-    const month = String(horaIncidente.getMonth() + 1).padStart(2, '0');
-    const day = String(horaIncidente.getDate()).padStart(2, '0');
-    const fechaLocal = `${year}-${month}-${day}`;
+// ✅ DESPUÉS
+const hoy = new Date();
+const year = hoy.getFullYear();
+const month = String(hoy.getMonth() + 1).padStart(2, '0');
+const day = String(hoy.getDate()).padStart(2, '0');
+const fechaLocal = `${year}-${month}-${day}`;
 
     const denunciaData = {
       descripcion,

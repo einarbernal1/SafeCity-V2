@@ -264,13 +264,19 @@ fecha: denuncia?.fecha
     console.log('Updating denuncia with data:', denunciaData);
   
     try {
-      const response = await fetch(API_URL_UPDATE_DENUNCIA, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(denunciaData),
-      });
+// ✅ Reemplaza el fetch en handleUpdate
+const controller = new AbortController();
+const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 segundos
+
+const response = await fetch(API_URL_UPDATE_DENUNCIA, {
+  method: 'PUT',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify(denunciaData),
+  signal: controller.signal,
+});
+clearTimeout(timeoutId);
     
       const data = await response.json();
       console.log('Update response:', data);
@@ -289,10 +295,13 @@ fecha: denuncia?.fecha
       } else {
         showErrorModal(data.message || 'Error al actualizar denuncia');
       }
-    } catch (error) {
-      console.error('Error al enviar denuncia:', error);
-      showErrorModal('No se pudo conectar al servidor');
-    } finally {
+    } catch (error: any) {
+      if (error.name === 'AbortError') {
+        showErrorModal('La conexión tardó demasiado. Verifica tu internet e intenta de nuevo.');
+      } else {
+        showErrorModal('No se pudo conectar al servidor');
+      }
+    }finally {
       setUpdating(false);
     }
   };
