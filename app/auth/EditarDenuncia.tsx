@@ -252,7 +252,10 @@ const EditarDenunciaScreen = () => {
       descripcion: descripcion.trim(),
       modulo_epi: moduloPolicial,
       hora: formatTime(horaIncidente),
-      fecha: denuncia?.fecha || formatDate(new Date()),
+      // ✅ DESPUÉS - fuerza el formato correcto siempre
+fecha: denuncia?.fecha 
+? String(denuncia.fecha).split('T')[0] 
+: formatDate(new Date()),
       tipo: tipoIncidente,
       calle_avenida: calleAvenida.trim(),
       evidencia: imageUrl || null, // Usar la URL de Cloudinary
