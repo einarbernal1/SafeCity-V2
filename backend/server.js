@@ -753,10 +753,11 @@ const [denunciaActual] = await pool.query(
       message: 'Denuncia actualizada exitosamente'
     });
   } catch (error) {
-    console.error('Error al actualizar denuncia:', error);
+    console.error('Error al actualizar denuncia:', error.message); // <-- ya existe
     res.status(500).json({
       success: false,
-      message: 'Error en el servidor al actualizar la denuncia'
+      message: 'Error en el servidor al actualizar la denuncia',
+      error: error.message  // ← AGREGA ESTO temporalmente
     });
   }
 });
