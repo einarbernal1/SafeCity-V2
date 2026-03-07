@@ -224,7 +224,10 @@ const EditarDenunciaScreen = () => {
   };
 
   const formatDate = (date: Date) => {
-    return date.toISOString().split('T')[0]; // Formato YYYY-MM-DD
+    const anio = date.getFullYear();
+    const mes = String(date.getMonth() + 1).padStart(2, '0');
+    const dia = String(date.getDate()).padStart(2, '0');
+    return `${anio}-${mes}-${dia}`;
   };
 
   const handleUpdate = async () => {

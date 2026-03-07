@@ -24,7 +24,7 @@ const DenunciaExito = () => {
       
       <TouchableOpacity 
         style={styles.buttonI}
-        onPress={() => router.replace('/')}
+        onPress={() => router.replace('/(tabs)')}
       >
         <FontAwesome />
         <Text style={styles.buttonTextI}>Volver al inicio</Text>

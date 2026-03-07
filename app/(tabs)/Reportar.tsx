@@ -153,7 +153,10 @@ const API_URL = `${HEROKU_BASE_URL}/denuncias`;
   };
 
   const formatDate = (date: Date) => {
-    return date.toISOString().split('T')[0];
+    const anio = date.getFullYear();
+    const mes = String(date.getMonth() + 1).padStart(2, '0');
+    const dia = String(date.getDate()).padStart(2, '0');
+    return `${anio}-${mes}-${dia}`;
   };
 
   const handleSubmit = async () => {

@@ -21,6 +21,7 @@ const dbConfig = {
   password: process.env.MYSQL_ADDON_PASSWORD || '',
   database: process.env.MYSQL_ADDON_DB || 'safecity',
   port: process.env.MYSQL_ADDON_PORT || 3306, // Agregamos el puerto
+  timezone: '-04:00',
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0
