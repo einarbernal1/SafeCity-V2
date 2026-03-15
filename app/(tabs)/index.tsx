@@ -235,7 +235,7 @@ const API_URL_NOTICIAS = `${HEROKU_BASE_URL}/noticias`;
     <SafeAreaView style={styles.container}>
       <Stack.Screen 
         options={{
-          headerTitle: "SafeCity",
+          headerTitle: "SafeCityy",
           headerStyle: {
             backgroundColor: '#2e5929',
           },
